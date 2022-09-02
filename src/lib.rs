@@ -1,11 +1,11 @@
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
-    io::{self, BufReader, Read, Seek, SeekFrom},
+    io::{self, BufReader, BufWriter, Read, Seek, SeekFrom, Write},
     path::Path,
 };
 
-use byteorder::{LittleEndian, ReadBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use crc::crc32;
 
 type ByteString = Vec<u8>;
@@ -84,5 +84,40 @@ impl RustKV {
         let key = data;
 
         Ok(KeyValuePair { key, value })
+    }
+
+    pub fn insert(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<()> {
+        let position = self.insert_but_ignore_index(key, value)?;
+
+        self.index.insert(key.to_vec(), position);
+
+        Ok(())
+    }
+
+    pub fn insert_but_ignore_index(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<u64> {
+        let mut file = BufWriter::new(&mut self.file);
+        let key_length = key.len();
+        let value_length = value.len();
+        let mut tmp = ByteString::with_capacity(key_length + value_length);
+
+        for byte in key {
+            tmp.push(*byte);
+        }
+
+        for byte in value {
+            tmp.push(*byte);
+        }
+
+        let checksum = crc32::checksum_ieee(&tmp);
+
+        let next_byte = SeekFrom::End(0);
+        let position = file.seek(SeekFrom::Current(0))?;
+        file.seek(next_byte)?;
+        file.write_u32::<LittleEndian>(checksum)?;
+        file.write_u32::<LittleEndian>(key_length as u32)?;
+        file.write_u32::<LittleEndian>(value_length as u32)?;
+        file.write_all(&tmp)?;
+
+        Ok(position)
     }
 }
