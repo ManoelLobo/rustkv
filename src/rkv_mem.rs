@@ -1,5 +1,15 @@
 use librustkv::RustKV;
 
+#[cfg(target_os = "windows")]
+const USAGE: &str = "
+Usage:
+  rkv_mem.exe <FILE> get <key>
+  rkv_mem.exe <FILE> delete <key>
+  rkv_mem.exe <FILE> insert <key> <value>
+  rkv_mem.exe <FILE> update <key> <value>
+";
+
+#[cfg(not(target_os = "windows"))]
 const USAGE: &str = "
 Usage:
   rkv_mem <FILE> get <key>
