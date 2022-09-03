@@ -20,30 +20,31 @@ Usage:
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let filename = args.get(1).expect(&USAGE);
-    let command = args.get(2).expect(&USAGE).as_ref();
-    let key = args.get(3).expect(&USAGE);
+    let filename = args.get(1).expect(USAGE);
+    let command = args.get(2).expect(USAGE).as_ref();
+    let key = args.get(3).expect(USAGE).as_ref();
     let value_if_given = args.get(4);
 
-    let path = std::path::Path::new(filename);
+    let path = std::path::Path::new(&filename);
     let mut store = RustKV::open(path).expect("Failed to open store file");
     store.load().expect("Failed to load store contents");
 
     match command {
         "get" => match store.get(key).unwrap() {
-            None => println!("Key {key:?} not found"),
+            // TODO: Display the key as String again (as_ref converted to &[u8])
+            None => println!("Key {:?} not found", key),
             Some(value) => println!("{value:?}"),
         },
 
         "delete" => store.delete(key).unwrap(),
 
         "insert" => {
-            let value = value_if_given.expect(&USAGE);
+            let value = value_if_given.expect(USAGE).as_ref();
             store.insert(key, value).unwrap();
         }
 
         "update" => {
-            let value = value_if_given.expect(&USAGE);
+            let value = value_if_given.expect(USAGE).as_ref();
             store.update(key, value).unwrap();
         }
 

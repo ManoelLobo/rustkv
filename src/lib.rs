@@ -7,16 +7,19 @@ use std::{
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use crc::crc32;
+use serde_derive::{Deserialize, Serialize};
 
 type ByteString = Vec<u8>;
 
 type ByteStr = [u8];
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct KeyValuePair {
     key: ByteString,
     value: ByteString,
 }
 
+#[derive(Debug)]
 pub struct RustKV {
     file: File,
     pub index: HashMap<ByteString, u64>,
@@ -55,7 +58,7 @@ impl RustKV {
         Ok(())
     }
 
-    pub fn process_record<R: Read>(file: &mut R) -> io::Result<KeyValuePair> {
+    fn process_record<R: Read>(file: &mut R) -> io::Result<KeyValuePair> {
         let saved_checksum = file.read_u32::<LittleEndian>()?;
         let key_length = file.read_u32::<LittleEndian>()?;
         let value_length = file.read_u32::<LittleEndian>()?;
@@ -94,7 +97,7 @@ impl RustKV {
         Ok(())
     }
 
-    pub fn insert_but_ignore_index(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<u64> {
+    fn insert_but_ignore_index(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<u64> {
         let mut file = BufWriter::new(&mut self.file);
         let key_length = key.len();
         let value_length = value.len();
@@ -119,5 +122,31 @@ impl RustKV {
         file.write_all(&tmp)?;
 
         Ok(position)
+    }
+
+    pub fn get(&mut self, key: &ByteStr) -> io::Result<Option<ByteString>> {
+        let position = match self.index.get(key) {
+            Some(position) => *position,
+            None => return Ok(None),
+        };
+
+        let kv = self.get_at_position(position)?;
+
+        Ok(Some(kv.value))
+    }
+
+    fn get_at_position(&mut self, position: u64) -> io::Result<KeyValuePair> {
+        let mut file = BufReader::new(&self.file);
+        file.seek(SeekFrom::Start(position))?;
+
+        RustKV::process_record(&mut file)
+    }
+
+    pub fn update(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<()> {
+        self.insert(key, value)
+    }
+
+    pub fn delete(&mut self, key: &ByteStr) -> io::Result<()> {
+        self.insert(key, b"")
     }
 }
