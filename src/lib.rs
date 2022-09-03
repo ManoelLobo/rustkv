@@ -16,7 +16,7 @@ type ByteStr = [u8];
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyValuePair {
     key: ByteString,
-    value: ByteString,
+    pub value: ByteString,
 }
 
 #[derive(Debug)]
@@ -135,7 +135,7 @@ impl RustKV {
         Ok(Some(kv.value))
     }
 
-    fn get_at_position(&mut self, position: u64) -> io::Result<KeyValuePair> {
+    pub fn get_at_position(&mut self, position: u64) -> io::Result<KeyValuePair> {
         let mut file = BufReader::new(&self.file);
         file.seek(SeekFrom::Start(position))?;
 
