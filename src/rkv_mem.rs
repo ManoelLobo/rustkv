@@ -31,7 +31,7 @@ fn main() {
 
     match command {
         "get" => match store.get(key).unwrap() {
-            // TODO: Display the key as String again (as_ref converted to &[u8])
+            // TODO: Display key as String again (as_ref converted to &[u8])
             None => println!("Key {:?} not found", key),
             Some(value) => println!("{value:?}"),
         },
